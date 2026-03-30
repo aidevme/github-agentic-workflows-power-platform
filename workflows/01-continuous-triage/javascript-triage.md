@@ -6,27 +6,26 @@ on:
   issues:
     types: [opened, reopened]
 permissions:
-  issues: write
   contents: read
 safe-outputs:
-  - apply-label:
-      allowed-labels:
-        - "javascript"
-        - "typescript"
-        - "webresource"
-        - "pcf"
-        - "bug"
-        - "enhancement"
-        - "needs-info"
-        - "npm-dependency"
-        - "build-error"
-        - "runtime-error"
-        - "type-error"
-        - "fluent-ui"
-        - "react"
-        - "webpack"
-        - "documentation"
-  - add-comment: {}
+  add-labels:
+    allowed:
+      - "javascript"
+      - "typescript"
+      - "webresource"
+      - "pcf"
+      - "bug"
+      - "enhancement"
+      - "needs-info"
+      - "npm-dependency"
+      - "build-error"
+      - "runtime-error"
+      - "type-error"
+      - "fluent-ui"
+      - "react"
+      - "webpack"
+      - "documentation"
+  add-comment: {}
 timeout-minutes: 5
 ---
 
