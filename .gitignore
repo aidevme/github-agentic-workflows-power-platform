@@ -1,0 +1,20 @@
+# Agentic Workflows - Intermediate compilation files
+*.lock.yml
+.github/workflows/*.lock.yml
+
+# Node modules (for PCF components)
+node_modules/
+package-lock.json
+
+# Build outputs
+out/
+dist/
+*.tmp
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
