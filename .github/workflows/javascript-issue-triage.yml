@@ -102,7 +102,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "javascript-triage.lock.yml"
+          GH_AW_WORKFLOW_FILE: "javascript-issue-triage.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -179,7 +179,7 @@ jobs:
           </system>
           GH_AW_PROMPT_5ea60994fb85992f_EOF
           cat << 'GH_AW_PROMPT_5ea60994fb85992f_EOF'
-          {{#runtime-import javascript-triage.md}}
+          {{#runtime-import javascript-issue-triage.md}}
           GH_AW_PROMPT_5ea60994fb85992f_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
@@ -258,7 +258,7 @@ jobs:
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: javascripttriage
+      GH_AW_WORKFLOW_ID_SANITIZED: javascriptissuetriage
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       has_patch: ${{ steps.collect_output.outputs.has_patch }}
@@ -808,7 +808,7 @@ jobs:
       issues: write
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-javascript-triage"
+      group: "gh-aw-conclusion-javascript-issue-triage"
       cancel-in-progress: false
     outputs:
       noop_message: ${{ steps.noop.outputs.noop_message }}
@@ -870,7 +870,7 @@ jobs:
           GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "javascript-triage"
+          GH_AW_WORKFLOW_ID: "javascript-issue-triage"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_LOCKDOWN_CHECK_FAILED: ${{ needs.activation.outputs.lockdown_check_failed }}
@@ -1091,10 +1091,10 @@ jobs:
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/javascript-triage"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/javascript-issue-triage"
       GH_AW_ENGINE_ID: "claude-sonnet-3.5"
       GH_AW_ENGINE_MODEL: ${{ needs.agent.outputs.model }}
-      GH_AW_WORKFLOW_ID: "javascript-triage"
+      GH_AW_WORKFLOW_ID: "javascript-issue-triage"
       GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}

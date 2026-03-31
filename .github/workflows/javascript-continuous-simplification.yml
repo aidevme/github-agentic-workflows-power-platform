@@ -167,7 +167,7 @@ jobs:
           </system>
           GH_AW_PROMPT_69f4ba8f95552921_EOF
           cat << 'GH_AW_PROMPT_69f4ba8f95552921_EOF'
-          {{#runtime-import .github/workflows/javascript-continuous-simplification.md}}
+          {{#runtime-import javascript-continuous-simplification.md}}
           GH_AW_PROMPT_69f4ba8f95552921_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
