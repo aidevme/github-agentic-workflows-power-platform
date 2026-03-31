@@ -1,0 +1,23 @@
+{
+  "name": "dataverse-webresource-library",
+  "version": "1.0.0",
+  "description": "Dataverse JavaScript web resources for forms and ribbons",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/scripts/__tests__/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "scripts/**/*.js",
+      "!scripts/__tests__/**"
+    ]
+  }
+}
