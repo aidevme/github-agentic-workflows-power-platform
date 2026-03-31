@@ -643,6 +643,50 @@ Contoso.Account.Form = (function () {
         }
     }
 
+    /**
+     * Validates phone number format
+     * Ensures phone number follows standard format: (XXX) XXX-XXXX
+     * @param {string} phoneNumber - The phone number to validate
+     * @returns {boolean} True if valid, false otherwise
+     */
+    function validatePhoneNumber(phoneNumber) {
+        if (!phoneNumber) {
+            return true; // Empty is valid (not required)
+        }
+
+        // Standard US phone format: (XXX) XXX-XXXX
+        var phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
+        return phoneRegex.test(phoneNumber);
+    }
+
+    /**
+     * Formats a raw phone number string to standard format
+     * Converts various phone formats to (XXX) XXX-XXXX
+     * @param {string} rawPhone - Raw phone number (digits only or various formats)
+     * @returns {string} Formatted phone number or original if invalid
+     * @example
+     * formatPhoneNumber("1234567890") // Returns "(123) 456-7890"
+     * formatPhoneNumber("123-456-7890") // Returns "(123) 456-7890"
+     */
+    function formatPhoneNumber(rawPhone) {
+        if (!rawPhone) {
+            return "";
+        }
+
+        // Remove all non-digit characters
+        var digits = rawPhone.replace(/\D/g, "");
+
+        // Check if we have exactly 10 digits
+        if (digits.length === 10) {
+            return "(" + digits.substring(0, 3) + ") " + 
+                   digits.substring(3, 6) + "-" + 
+                   digits.substring(6, 10);
+        }
+
+        // If format is invalid, return original
+        return rawPhone;
+    }
+
     // Public API - expose only necessary functions
     return {
         OnLoad: onLoad,
@@ -650,7 +694,10 @@ Contoso.Account.Form = (function () {
         // Expose for testing/debugging if needed
         OnAccountNameChange: onAccountNameChange,
         OnPrimaryContactChange: onPrimaryContactChange,
-        OnRevenueChange: onRevenueChange
+        OnRevenueChange: onRevenueChange,
+        // Validation helpers
+        ValidatePhoneNumber: validatePhoneNumber,
+        FormatPhoneNumber: formatPhoneNumber
     };
 
 })();
