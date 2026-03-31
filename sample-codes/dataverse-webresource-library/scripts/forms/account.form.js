@@ -1,18 +1,18 @@
 /**
  * Account Form JavaScript
- * Web Resource: contoso_/scripts/forms/account.form.js
+ * Web Resource: aidevme_/scripts/forms/account.form.js
  * 
  * Description: Form scripting for Account entity
  * Dependencies: None
  * 
- * @namespace Contoso.Account.Form
+ * @namespace AIDEVME.Account.Form
  */
 
 // Create namespace to avoid global scope pollution
-var Contoso = Contoso || {};
-Contoso.Account = Contoso.Account || {};
+var AIDEVME = AIDEVME || {};
+AIDEVME.Account = AIDEVME.Account || {};
 
-Contoso.Account.Form = (function () {
+AIDEVME.Account.Form = (function () {
     "use strict";
 
     // Private variables
@@ -660,10 +660,10 @@ Contoso.Account.Form = (function () {
 
 /**
  * Form OnLoad Handler
- * Register this function in form properties: Contoso.Account.Form.OnLoad
+ * Register this function in form properties: AIDEVME.Account.Form.OnLoad
  */
 
 /**
  * Form OnSave Handler  
- * Register this function in form properties: Contoso.Account.Form.OnSave
+ * Register this function in form properties: AIDEVME.Account.Form.OnSave
  */

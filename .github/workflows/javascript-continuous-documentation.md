@@ -7,8 +7,6 @@ on:
     types: [opened, synchronize]
     paths:
       - 'sample-codes/dataverse-webresource-library/scripts/**/*.js'
-      - 'sample-codes/pcf-components/**/*.ts'
-      - 'sample-codes/pcf-components/**/*.tsx'
 
 engine: claude-sonnet-3.5
 
