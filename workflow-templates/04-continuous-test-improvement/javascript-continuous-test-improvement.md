@@ -13,7 +13,8 @@ tools:
   github:
     toolsets: [pull_requests, search]
 safe-outputs:
-  create-pull-request: {}
+  create-pull-request:
+    protected-files: fallback-to-issue
 timeout-minutes: 20
 ---
 
