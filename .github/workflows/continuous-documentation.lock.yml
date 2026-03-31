@@ -20,28 +20,34 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Automatically triages JavaScript/TypeScript issues in Power Platform projects
+# Automatically generates and updates documentation for JavaScript web resources when code changes are detected in pull requests
 #
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"e39ed6fba7214f7c1371cd6ffac8e95a5a5cb8a9e6168a2590e9b94a35c164e4","compiler_version":"v0.64.4","strict":true,"agent_id":"claude-sonnet-3.5"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"8c4702b7ffa5cedc2766b4d5a9a0e1e959e6c32117f714169333e187b4af429a","compiler_version":"v0.64.4","strict":true,"agent_id":"claude-sonnet-3.5"}
 
-name: "JavaScript Issue Triage"
+name: "Continuous Documentation - JavaScript"
 "on":
-  issues:
+  pull_request:
+    paths:
+    - sample-codes/dataverse-webresource-library/scripts/**/*.js
+    - sample-codes/pcf-components/**/*.ts
+    - sample-codes/pcf-components/**/*.tsx
     types:
     - opened
-    - reopened
+    - synchronize
 
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}"
+  group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}"
+  cancel-in-progress: true
 
-run-name: "JavaScript Issue Triage"
+run-name: "Continuous Documentation - JavaScript"
 
 jobs:
   activation:
     needs: pre_activation
-    if: needs.pre_activation.outputs.activated == 'true'
+    if: >
+      needs.pre_activation.outputs.activated == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.id == github.repository_id)
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -68,7 +74,7 @@ jobs:
           GH_AW_INFO_VERSION: "latest"
           GH_AW_INFO_AGENT_VERSION: "latest"
           GH_AW_INFO_CLI_VERSION: "v0.64.4"
-          GH_AW_INFO_WORKFLOW_NAME: "JavaScript Issue Triage"
+          GH_AW_INFO_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
           GH_AW_INFO_EXPERIMENTAL: "false"
           GH_AW_INFO_SUPPORTS_TOOLS_ALLOWLIST: "true"
           GH_AW_INFO_STAGED: "false"
@@ -102,7 +108,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "javascript-triage.lock.yml"
+          GH_AW_WORKFLOW_FILE: "continuous-documentation.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -134,16 +140,16 @@ jobs:
         run: |
           bash ${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh
           {
-          cat << 'GH_AW_PROMPT_5ea60994fb85992f_EOF'
+          cat << 'GH_AW_PROMPT_63b893a4e90c1665_EOF'
           <system>
-          GH_AW_PROMPT_5ea60994fb85992f_EOF
+          GH_AW_PROMPT_63b893a4e90c1665_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_5ea60994fb85992f_EOF'
+          cat << 'GH_AW_PROMPT_63b893a4e90c1665_EOF'
           <safe-output-tools>
-          Tools: add_comment, add_labels, missing_tool, missing_data, noop
+          Tools: add_comment, missing_tool, missing_data, noop
           </safe-output-tools>
           <github-context>
           The following GitHub context information is available for this workflow:
@@ -173,14 +179,14 @@ jobs:
           {{/if}}
           </github-context>
           
-          GH_AW_PROMPT_5ea60994fb85992f_EOF
+          GH_AW_PROMPT_63b893a4e90c1665_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_5ea60994fb85992f_EOF'
+          cat << 'GH_AW_PROMPT_63b893a4e90c1665_EOF'
           </system>
-          GH_AW_PROMPT_5ea60994fb85992f_EOF
-          cat << 'GH_AW_PROMPT_5ea60994fb85992f_EOF'
-          {{#runtime-import javascript-triage.md}}
-          GH_AW_PROMPT_5ea60994fb85992f_EOF
+          GH_AW_PROMPT_63b893a4e90c1665_EOF
+          cat << 'GH_AW_PROMPT_63b893a4e90c1665_EOF'
+          {{#runtime-import .github/workflows/continuous-documentation.md}}
+          GH_AW_PROMPT_63b893a4e90c1665_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -252,13 +258,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_AW_ASSETS_ALLOWED_EXTS: ""
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: javascripttriage
+      GH_AW_WORKFLOW_ID_SANITIZED: continuousdocumentation
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       has_patch: ${{ steps.collect_output.outputs.has_patch }}
@@ -338,22 +345,21 @@ jobs:
           mkdir -p ${RUNNER_TEMP}/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_8a45c06b8daa7566_EOF'
-          {"add_comment":{"max":1},"add_labels":{"allowed":["javascript","typescript","webresource","pcf","bug","enhancement","needs-info","npm-dependency","build-error","runtime-error","type-error","fluent-ui","react","webpack","documentation"]},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_8a45c06b8daa7566_EOF
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_0c9f63746dad482e_EOF'
+          {"add_comment":{"max":1},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"}}
+          GH_AW_SAFE_OUTPUTS_CONFIG_0c9f63746dad482e_EOF
       - name: Write Safe Outputs Tools
         run: |
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_b68f24b5ee4ceb0d_EOF'
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/tools_meta.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_META_12661fc3d4b0bde8_EOF'
           {
             "description_suffixes": {
-              "add_comment": " CONSTRAINTS: Maximum 1 comment(s) can be added.",
-              "add_labels": " CONSTRAINTS: Only these labels are allowed: [\"javascript\" \"typescript\" \"webresource\" \"pcf\" \"bug\" \"enhancement\" \"needs-info\" \"npm-dependency\" \"build-error\" \"runtime-error\" \"type-error\" \"fluent-ui\" \"react\" \"webpack\" \"documentation\"]."
+              "add_comment": " CONSTRAINTS: Maximum 1 comment(s) can be added."
             },
             "repo_params": {},
             "dynamic_tools": []
           }
-          GH_AW_SAFE_OUTPUTS_TOOLS_META_b68f24b5ee4ceb0d_EOF
-          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_c37af763d61135b5_EOF'
+          GH_AW_SAFE_OUTPUTS_TOOLS_META_12661fc3d4b0bde8_EOF
+          cat > ${RUNNER_TEMP}/gh-aw/safeoutputs/validation.json << 'GH_AW_SAFE_OUTPUTS_VALIDATION_a52380132bdef30d_EOF'
           {
             "add_comment": {
               "defaultMax": 1,
@@ -366,25 +372,6 @@ jobs:
                 },
                 "item_number": {
                   "issueOrPRNumber": true
-                },
-                "repo": {
-                  "type": "string",
-                  "maxLength": 256
-                }
-              }
-            },
-            "add_labels": {
-              "defaultMax": 5,
-              "fields": {
-                "item_number": {
-                  "issueNumberOrTemporaryId": true
-                },
-                "labels": {
-                  "required": true,
-                  "type": "array",
-                  "itemType": "string",
-                  "itemSanitize": true,
-                  "itemMaxLength": 128
                 },
                 "repo": {
                   "type": "string",
@@ -450,7 +437,7 @@ jobs:
               }
             }
           }
-          GH_AW_SAFE_OUTPUTS_VALIDATION_c37af763d61135b5_EOF
+          GH_AW_SAFE_OUTPUTS_VALIDATION_a52380132bdef30d_EOF
           node ${RUNNER_TEMP}/gh-aw/actions/generate_safe_outputs_tools.cjs
       - name: Generate Safe Outputs MCP Server Config
         id: safe-outputs-config
@@ -517,7 +504,7 @@ jobs:
           export GH_AW_ENGINE="claude"
           export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e MCP_GATEWAY_PAYLOAD_DIR -e MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD -e DEBUG -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_GUARD_MIN_INTEGRITY -e GITHUB_MCP_GUARD_REPOS -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_RUN_NUMBER -e GITHUB_RUN_ATTEMPT -e GITHUB_JOB -e GITHUB_ACTION -e GITHUB_EVENT_NAME -e GITHUB_EVENT_PATH -e GITHUB_ACTOR -e GITHUB_ACTOR_ID -e GITHUB_TRIGGERING_ACTOR -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF -e GITHUB_WORKFLOW_SHA -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_REF_TYPE -e GITHUB_HEAD_REF -e GITHUB_BASE_REF -e GH_AW_SAFE_OUTPUTS_PORT -e GH_AW_SAFE_OUTPUTS_API_KEY -v /tmp/gh-aw/mcp-payloads:/tmp/gh-aw/mcp-payloads:rw -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:v0.2.9'
           
-          cat << GH_AW_MCP_CONFIG_277dc0b917328628_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
+          cat << GH_AW_MCP_CONFIG_ac4ed7e1bf0f36e6_EOF | bash ${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh
           {
             "mcpServers": {
               "github": {
@@ -557,7 +544,7 @@ jobs:
               "payloadDir": "${MCP_GATEWAY_PAYLOAD_DIR}"
             }
           }
-          GH_AW_MCP_CONFIG_277dc0b917328628_EOF
+          GH_AW_MCP_CONFIG_ac4ed7e1bf0f36e6_EOF
       - name: Download activation artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -808,7 +795,7 @@ jobs:
       issues: write
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-javascript-triage"
+      group: "gh-aw-conclusion-continuous-documentation"
       cancel-in-progress: false
     outputs:
       noop_message: ${{ steps.noop.outputs.noop_message }}
@@ -839,7 +826,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: "1"
-          GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
+          GH_AW_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -853,7 +840,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_MISSING_TOOL_CREATE_ISSUE: "true"
-          GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
+          GH_AW_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -867,10 +854,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
+          GH_AW_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "javascript-triage"
+          GH_AW_WORKFLOW_ID: "continuous-documentation"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_LOCKDOWN_CHECK_FAILED: ${{ needs.activation.outputs.lockdown_check_failed }}
@@ -889,7 +876,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
+          GH_AW_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -970,8 +957,8 @@ jobs:
         if: always() && steps.detection_guard.outputs.run_detection == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "JavaScript Issue Triage"
-          WORKFLOW_DESCRIPTION: "Automatically triages JavaScript/TypeScript issues in Power Platform projects"
+          WORKFLOW_NAME: "Continuous Documentation - JavaScript"
+          WORKFLOW_DESCRIPTION: "Automatically generates and updates documentation for JavaScript web resources when code changes are detected in pull requests"
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1056,6 +1043,7 @@ jobs:
             await main();
 
   pre_activation:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.id == github.repository_id
     runs-on: ubuntu-slim
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
@@ -1091,11 +1079,11 @@ jobs:
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/javascript-triage"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/continuous-documentation"
       GH_AW_ENGINE_ID: "claude-sonnet-3.5"
       GH_AW_ENGINE_MODEL: ${{ needs.agent.outputs.model }}
-      GH_AW_WORKFLOW_ID: "javascript-triage"
-      GH_AW_WORKFLOW_NAME: "JavaScript Issue Triage"
+      GH_AW_WORKFLOW_ID: "continuous-documentation"
+      GH_AW_WORKFLOW_NAME: "Continuous Documentation - JavaScript"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
@@ -1141,7 +1129,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,s.symcb.com,s.symcd.com,security.ubuntu.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1},\"add_labels\":{\"allowed\":[\"javascript\",\"typescript\",\"webresource\",\"pcf\",\"bug\",\"enhancement\",\"needs-info\",\"npm-dependency\",\"build-error\",\"runtime-error\",\"type-error\",\"fluent-ui\",\"react\",\"webpack\",\"documentation\"]},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"true\"}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"true\"}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
