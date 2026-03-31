@@ -49,20 +49,26 @@ foreach ($template in $workflowTemplates) {
         continue
     }
     
-    # Copy to .github/workflows/
+    # Copy .yml and .md to .github/workflows/
     $workflowName = $template.BaseName + ".yml"
-    $destinationPath = Join-Path -Path (Join-Path -Path ".github" -ChildPath "workflows") -ChildPath $workflowName
+    $workflowMdName = $template.BaseName + ".md"
+    $destinationYmlPath = Join-Path -Path (Join-Path -Path ".github" -ChildPath "workflows") -ChildPath $workflowName
+    $destinationMdPath = Join-Path -Path (Join-Path -Path ".github" -ChildPath "workflows") -ChildPath $workflowMdName
     
-    Copy-Item -Path $lockFile -Destination $destinationPath -Force
+    # Copy compiled .yml file
+    Copy-Item -Path $lockFile -Destination $destinationYmlPath -Force
+    
+    # Copy source .md file (required for runtime imports)
+    Copy-Item -Path $template.FullName -Destination $destinationMdPath -Force
     
     # Delete the .lock.yml file from workflow-templates after copying
     Remove-Item -Path $lockFile -Force -ErrorAction SilentlyContinue
     
-    Write-Host "  Deployed to .github/workflows/$workflowName" -ForegroundColor Green
+    Write-Host "  Deployed to .github/workflows/$workflowName (+ .md)" -ForegroundColor Green
     $compiled++
     
     if ($Verbose) {
-        $fileSize = (Get-Item $destinationPath).Length / 1KB
+        $fileSize = (Get-Item $destinationYmlPath).Length / 1KB
         Write-Host "  Size: $([math]::Round($fileSize, 2)) KB" -ForegroundColor Gray
     }
     
