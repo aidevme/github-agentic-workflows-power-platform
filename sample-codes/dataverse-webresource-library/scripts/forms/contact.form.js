@@ -18,6 +18,10 @@ AIDEVME.Contact.Form = (function () {
     // Private variables
     var formContext = null;
 
+    // Shared validation patterns
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var PHONE_PATTERN = /^[\d\s\-\(\)\+]+$/;
+
     /**
      * OnLoad Event Handler
      * Called when the form loads
@@ -83,12 +87,8 @@ AIDEVME.Contact.Form = (function () {
         // Set required fields for create
         setRequiredFields(true);
 
-        // Hide certain sections on create
-        var formType = formContext.ui.getFormType();
-        if (formType === 1) {
-            // Hide advanced details until record is created
-            showTab("details_tab", false);
-        }
+        // Hide advanced details until record is created
+        showTab("details_tab", false);
     }
 
     /**
@@ -168,62 +168,38 @@ AIDEVME.Contact.Form = (function () {
      */
     function registerFieldEventHandlers() {
         try {
-            // Email Address - onChange
-            var emailField = formContext.getAttribute("emailaddress1");
-            if (emailField) {
-                emailField.addOnChange(onEmailAddressChange);
+            function addHandler(fieldName, handler) {
+                var field = formContext.getAttribute(fieldName);
+                if (field) { field.addOnChange(handler); }
             }
 
-            // Mobile Phone - onChange
-            var mobilePhoneField = formContext.getAttribute("mobilephone");
-            if (mobilePhoneField) {
-                mobilePhoneField.addOnChange(onMobilePhoneChange);
-            }
-
-            // Business Phone - onChange
-            var businessPhoneField = formContext.getAttribute("telephone1");
-            if (businessPhoneField) {
-                businessPhoneField.addOnChange(onBusinessPhoneChange);
-            }
-
-            // Parent Customer - onChange
-            var parentCustomerField = formContext.getAttribute("parentcustomerid");
-            if (parentCustomerField) {
-                parentCustomerField.addOnChange(onParentCustomerChange);
-            }
-
-            // Job Title - onChange
-            var jobTitleField = formContext.getAttribute("jobtitle");
-            if (jobTitleField) {
-                jobTitleField.addOnChange(onJobTitleChange);
-            }
-
-            // Birthdate - onChange
-            var birthdateField = formContext.getAttribute("birthdate");
-            if (birthdateField) {
-                birthdateField.addOnChange(onBirthdateChange);
-            }
-
-            // Do Not Email - onChange
-            var doNotEmailField = formContext.getAttribute("donotemail");
-            if (doNotEmailField) {
-                doNotEmailField.addOnChange(onDoNotEmailChange);
-            }
-
-            // First Name - onChange
-            var firstNameField = formContext.getAttribute("firstname");
-            if (firstNameField) {
-                firstNameField.addOnChange(onNameChange);
-            }
-
-            // Last Name - onChange
-            var lastNameField = formContext.getAttribute("lastname");
-            if (lastNameField) {
-                lastNameField.addOnChange(onNameChange);
-            }
+            addHandler("emailaddress1", onEmailAddressChange);
+            addHandler("mobilephone", onMobilePhoneChange);
+            addHandler("telephone1", onBusinessPhoneChange);
+            addHandler("parentcustomerid", onParentCustomerChange);
+            addHandler("jobtitle", onJobTitleChange);
+            addHandler("birthdate", onBirthdateChange);
+            addHandler("donotemail", onDoNotEmailChange);
+            addHandler("firstname", onNameChange);
+            addHandler("lastname", onNameChange);
 
         } catch (error) {
             handleError("registerFieldEventHandlers", error);
+        }
+    }
+
+    /**
+     * Validates a phone field and sets/clears its control notification
+     * @param {string} fieldName - Logical name of the phone field
+     * @param {string} notificationId - Unique ID for the notification
+     */
+    function validatePhoneField(fieldName, notificationId) {
+        var value = formContext.getAttribute(fieldName).getValue();
+        var control = formContext.getControl(fieldName);
+        if (value && !PHONE_PATTERN.test(value)) {
+            control.setNotification("Please enter a valid phone number", notificationId);
+        } else {
+            control.clearNotification(notificationId);
         }
     }
 
@@ -237,9 +213,7 @@ AIDEVME.Contact.Form = (function () {
 
             if (emailValue) {
                 // Validate email format
-                var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                
-                if (!emailPattern.test(emailValue)) {
+                if (!EMAIL_PATTERN.test(emailValue)) {
                     formContext.getControl("emailaddress1").setNotification(
                         "Please enter a valid email address",
                         "email_validation"
@@ -265,26 +239,14 @@ AIDEVME.Contact.Form = (function () {
      */
     function onMobilePhoneChange() {
         try {
-            var mobilePhoneField = formContext.getAttribute("mobilephone");
-            var phoneValue = mobilePhoneField.getValue();
+            validatePhoneField("mobilephone", "mobile_validation");
 
+            // Auto-set preferred contact method to phone if not set and no email
+            var phoneValue = formContext.getAttribute("mobilephone").getValue();
             if (phoneValue) {
-                // Basic phone number validation
-                var phonePattern = /^[\d\s\-\(\)\+]+$/;
-                
-                if (!phonePattern.test(phoneValue)) {
-                    formContext.getControl("mobilephone").setNotification(
-                        "Please enter a valid phone number",
-                        "mobile_validation"
-                    );
-                } else {
-                    formContext.getControl("mobilephone").clearNotification("mobile_validation");
-                }
-
-                // Auto-set preferred contact method to phone if not set and no email
                 var preferredMethodField = formContext.getAttribute("preferredcontactmethodcode");
                 var emailField = formContext.getAttribute("emailaddress1");
-                
+
                 if (preferredMethodField && !preferredMethodField.getValue() && !emailField.getValue()) {
                     preferredMethodField.setValue(3); // Phone
                 }
@@ -300,23 +262,7 @@ AIDEVME.Contact.Form = (function () {
      */
     function onBusinessPhoneChange() {
         try {
-            var businessPhoneField = formContext.getAttribute("telephone1");
-            var phoneValue = businessPhoneField.getValue();
-
-            if (phoneValue) {
-                // Basic phone number validation
-                var phonePattern = /^[\d\s\-\(\)\+]+$/;
-                
-                if (!phonePattern.test(phoneValue)) {
-                    formContext.getControl("telephone1").setNotification(
-                        "Please enter a valid phone number",
-                        "phone_validation"
-                    );
-                } else {
-                    formContext.getControl("telephone1").clearNotification("phone_validation");
-                }
-            }
-
+            validatePhoneField("telephone1", "phone_validation");
         } catch (error) {
             handleError("onBusinessPhoneChange", error);
         }
@@ -460,7 +406,7 @@ AIDEVME.Contact.Form = (function () {
             var doNotEmailField = formContext.getAttribute("donotemail");
             var doNotEmail = doNotEmailField.getValue();
 
-            if (doNotEmail === true) {
+            if (doNotEmail) {
                 // If user opts out of email, change preferred method
                 var preferredMethodField = formContext.getAttribute("preferredcontactmethodcode");
                 if (preferredMethodField && preferredMethodField.getValue() === 2) {
@@ -807,8 +753,7 @@ AIDEVME.Contact.Form = (function () {
 
             // Validate email format if provided
             if (email) {
-                var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailPattern.test(email)) {
+                if (!EMAIL_PATTERN.test(email)) {
                     formContext.ui.setFormNotification(
                         "Invalid email address format",
                         "ERROR",

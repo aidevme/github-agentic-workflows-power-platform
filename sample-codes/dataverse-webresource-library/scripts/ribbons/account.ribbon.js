@@ -393,14 +393,9 @@ AIDEVME.Account.Ribbon = (function () {
 
             // Check if any selected account has creditonhold = true
             // Note: This requires the field to be in the grid
-            for (var i = 0; i < selectedItems.length; i++) {
-                var creditOnHold = selectedItems[i].CreditOnHold;
-                if (creditOnHold === true || creditOnHold === "true") {
-                    return true;
-                }
-            }
-
-            return false;
+            return selectedItems.some(function (item) {
+                return item.CreditOnHold === true || item.CreditOnHold === "true";
+            });
 
         } catch (error) {
             console.error("enableRuleHasCreditOnHold error:", error);
@@ -456,14 +451,10 @@ AIDEVME.Account.Ribbon = (function () {
             // Example: Check for System Administrator or custom role
             // In production, check specific role GUIDs
             var systemAdminRoleId = "{00000000-0000-0000-0000-000000000001}"; // Example
-            
-            for (var i = 0; i < userRoles.length; i++) {
-                if (userRoles[i].id === systemAdminRoleId) {
-                    return true;
-                }
-            }
 
-            return false;
+            return userRoles.some(function (role) {
+                return role.id === systemAdminRoleId;
+            });
 
         } catch (error) {
             console.error("displayRuleManagerOnly error:", error);
@@ -482,16 +473,6 @@ AIDEVME.Account.Ribbon = (function () {
      */
     function showNotification(message, level) {
         try {
-            var notificationLevel = "INFO";
-            
-            if (level === "WARNING") {
-                notificationLevel = "WARNING";
-            } else if (level === "ERROR") {
-                notificationLevel = "ERROR";
-            } else if (level === "SUCCESS") {
-                notificationLevel = "SUCCESS";
-            }
-
             Xrm.Navigation.openAlertDialog({
                 text: message,
                 title: level || "Notification"
