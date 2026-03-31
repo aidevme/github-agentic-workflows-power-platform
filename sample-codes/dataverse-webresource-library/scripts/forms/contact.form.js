@@ -83,12 +83,8 @@ AIDEVME.Contact.Form = (function () {
         // Set required fields for create
         setRequiredFields(true);
 
-        // Hide certain sections on create
-        var formType = formContext.ui.getFormType();
-        if (formType === 1) {
-            // Hide advanced details until record is created
-            showTab("details_tab", false);
-        }
+        // Hide advanced details until record is created
+        showTab("details_tab", false);
     }
 
     /**
@@ -164,64 +160,31 @@ AIDEVME.Contact.Form = (function () {
     }
 
     /**
+     * Adds an onChange handler to a field if the field exists
+     * @param {string} fieldName - The logical name of the field
+     * @param {Function} handler - The onChange handler function
+     */
+    function addFieldChange(fieldName, handler) {
+        var field = formContext.getAttribute(fieldName);
+        if (field) {
+            field.addOnChange(handler);
+        }
+    }
+
+    /**
      * Register event handlers for form fields
      */
     function registerFieldEventHandlers() {
         try {
-            // Email Address - onChange
-            var emailField = formContext.getAttribute("emailaddress1");
-            if (emailField) {
-                emailField.addOnChange(onEmailAddressChange);
-            }
-
-            // Mobile Phone - onChange
-            var mobilePhoneField = formContext.getAttribute("mobilephone");
-            if (mobilePhoneField) {
-                mobilePhoneField.addOnChange(onMobilePhoneChange);
-            }
-
-            // Business Phone - onChange
-            var businessPhoneField = formContext.getAttribute("telephone1");
-            if (businessPhoneField) {
-                businessPhoneField.addOnChange(onBusinessPhoneChange);
-            }
-
-            // Parent Customer - onChange
-            var parentCustomerField = formContext.getAttribute("parentcustomerid");
-            if (parentCustomerField) {
-                parentCustomerField.addOnChange(onParentCustomerChange);
-            }
-
-            // Job Title - onChange
-            var jobTitleField = formContext.getAttribute("jobtitle");
-            if (jobTitleField) {
-                jobTitleField.addOnChange(onJobTitleChange);
-            }
-
-            // Birthdate - onChange
-            var birthdateField = formContext.getAttribute("birthdate");
-            if (birthdateField) {
-                birthdateField.addOnChange(onBirthdateChange);
-            }
-
-            // Do Not Email - onChange
-            var doNotEmailField = formContext.getAttribute("donotemail");
-            if (doNotEmailField) {
-                doNotEmailField.addOnChange(onDoNotEmailChange);
-            }
-
-            // First Name - onChange
-            var firstNameField = formContext.getAttribute("firstname");
-            if (firstNameField) {
-                firstNameField.addOnChange(onNameChange);
-            }
-
-            // Last Name - onChange
-            var lastNameField = formContext.getAttribute("lastname");
-            if (lastNameField) {
-                lastNameField.addOnChange(onNameChange);
-            }
-
+            addFieldChange("emailaddress1", onEmailAddressChange);
+            addFieldChange("mobilephone", onMobilePhoneChange);
+            addFieldChange("telephone1", onBusinessPhoneChange);
+            addFieldChange("parentcustomerid", onParentCustomerChange);
+            addFieldChange("jobtitle", onJobTitleChange);
+            addFieldChange("birthdate", onBirthdateChange);
+            addFieldChange("donotemail", onDoNotEmailChange);
+            addFieldChange("firstname", onNameChange);
+            addFieldChange("lastname", onNameChange);
         } catch (error) {
             handleError("registerFieldEventHandlers", error);
         }
@@ -261,30 +224,38 @@ AIDEVME.Contact.Form = (function () {
     }
 
     /**
+     * Validates a phone field value and sets/clears a notification
+     * @param {string} fieldName - The logical name of the phone field
+     * @param {string} notificationId - The notification unique ID
+     */
+    function validatePhoneField(fieldName, notificationId) {
+        var phoneValue = formContext.getAttribute(fieldName).getValue();
+        if (!phoneValue) { return; }
+
+        var phonePattern = /^[\d\s\-\(\)\+]+$/;
+        if (!phonePattern.test(phoneValue)) {
+            formContext.getControl(fieldName).setNotification(
+                "Please enter a valid phone number",
+                notificationId
+            );
+        } else {
+            formContext.getControl(fieldName).clearNotification(notificationId);
+        }
+    }
+
+    /**
      * Mobile Phone onChange event handler
      */
     function onMobilePhoneChange() {
         try {
-            var mobilePhoneField = formContext.getAttribute("mobilephone");
-            var phoneValue = mobilePhoneField.getValue();
+            validatePhoneField("mobilephone", "mobile_validation");
 
+            // Auto-set preferred contact method to phone if not set and no email
+            var phoneValue = formContext.getAttribute("mobilephone").getValue();
             if (phoneValue) {
-                // Basic phone number validation
-                var phonePattern = /^[\d\s\-\(\)\+]+$/;
-                
-                if (!phonePattern.test(phoneValue)) {
-                    formContext.getControl("mobilephone").setNotification(
-                        "Please enter a valid phone number",
-                        "mobile_validation"
-                    );
-                } else {
-                    formContext.getControl("mobilephone").clearNotification("mobile_validation");
-                }
-
-                // Auto-set preferred contact method to phone if not set and no email
                 var preferredMethodField = formContext.getAttribute("preferredcontactmethodcode");
                 var emailField = formContext.getAttribute("emailaddress1");
-                
+
                 if (preferredMethodField && !preferredMethodField.getValue() && !emailField.getValue()) {
                     preferredMethodField.setValue(3); // Phone
                 }
@@ -300,23 +271,7 @@ AIDEVME.Contact.Form = (function () {
      */
     function onBusinessPhoneChange() {
         try {
-            var businessPhoneField = formContext.getAttribute("telephone1");
-            var phoneValue = businessPhoneField.getValue();
-
-            if (phoneValue) {
-                // Basic phone number validation
-                var phonePattern = /^[\d\s\-\(\)\+]+$/;
-                
-                if (!phonePattern.test(phoneValue)) {
-                    formContext.getControl("telephone1").setNotification(
-                        "Please enter a valid phone number",
-                        "phone_validation"
-                    );
-                } else {
-                    formContext.getControl("telephone1").clearNotification("phone_validation");
-                }
-            }
-
+            validatePhoneField("telephone1", "phone_validation");
         } catch (error) {
             handleError("onBusinessPhoneChange", error);
         }
@@ -460,7 +415,7 @@ AIDEVME.Contact.Form = (function () {
             var doNotEmailField = formContext.getAttribute("donotemail");
             var doNotEmail = doNotEmailField.getValue();
 
-            if (doNotEmail === true) {
+            if (doNotEmail) {
                 // If user opts out of email, change preferred method
                 var preferredMethodField = formContext.getAttribute("preferredcontactmethodcode");
                 if (preferredMethodField && preferredMethodField.getValue() === 2) {
