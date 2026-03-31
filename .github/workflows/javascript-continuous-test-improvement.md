@@ -1,7 +1,7 @@
 ---
 name: JavaScript Continuous Test Improvement
 description: Automatically identifies test coverage gaps and implements missing tests for JavaScript code in Dataverse web resources
-engine: claude-sonnet-3.5
+engine: claude-sonnet-4
 on:
   schedule:
     - cron: "0 4 * * 1,4"  # Monday and Thursday at 4 AM UTC
