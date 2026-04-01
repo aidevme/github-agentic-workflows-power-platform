@@ -286,4 +286,284 @@ describe('AIDEVME.Contact.Form', () => {
             expect(mockFormContext.ui.getFormType).toHaveBeenCalled();
         });
     });
+
+    // =========================================================================
+    // High-value tests: FormatPhoneNumber (pure utility function)
+    // =========================================================================
+
+    describe('FormatPhoneNumber', () => {
+        it('should format a 10-digit number to US format (XXX) XXX-XXXX', () => {
+            const result = AIDEVME.Contact.Form.FormatPhoneNumber('1234567890');
+            expect(result).toBe('(123) 456-7890');
+        });
+
+        it('should return empty string for null input', () => {
+            const result = AIDEVME.Contact.Form.FormatPhoneNumber(null);
+            expect(result).toBe('');
+        });
+
+        it('should return empty string for undefined input', () => {
+            const result = AIDEVME.Contact.Form.FormatPhoneNumber(undefined);
+            expect(result).toBe('');
+        });
+
+        it('should strip formatting characters and re-format a pre-formatted number', () => {
+            // '(123) 456-7890' strips to '1234567890' (10 digits) and reformats to same value
+            const result = AIDEVME.Contact.Form.FormatPhoneNumber('(123) 456-7890');
+            expect(result).toBe('(123) 456-7890');
+        });
+
+        it('should return the original string when digit count is not exactly 10', () => {
+            expect(AIDEVME.Contact.Form.FormatPhoneNumber('12345')).toBe('12345');
+            expect(AIDEVME.Contact.Form.FormatPhoneNumber('12345678901')).toBe('12345678901');
+        });
+    });
+
+    // =========================================================================
+    // High-value tests: ValidatePhoneNumber (pure utility function)
+    // =========================================================================
+
+    describe('ValidatePhoneNumber', () => {
+        it('should return true for null because phone is optional', () => {
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber(null)).toBe(true);
+        });
+
+        it('should return true for empty string because phone is optional', () => {
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('')).toBe(true);
+        });
+
+        it('should return true for valid formats with digits, spaces, dashes, and parentheses', () => {
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('(555) 123-4567')).toBe(true);
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('555-1234')).toBe(true);
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('+1 800 555 1234')).toBe(true);
+        });
+
+        it('should return false when phone number contains letters', () => {
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('555-CALL-US')).toBe(false);
+            expect(AIDEVME.Contact.Form.ValidatePhoneNumber('abc-123')).toBe(false);
+        });
+    });
+
+    // =========================================================================
+    // High-value tests: OnJobTitleChange (role auto-categorization business logic)
+    // =========================================================================
+
+    describe('OnJobTitleChange', () => {
+        let fieldMocks;
+
+        const makeField = (val) => ({
+            getValue: jest.fn(() => val),
+            setValue: jest.fn(),
+            addOnChange: jest.fn(),
+            setRequiredLevel: jest.fn(),
+            getRequiredLevel: jest.fn(() => 'none'),
+        });
+
+        beforeEach(() => {
+            // Use per-field mocks so jobtitle and accountrolecode return distinct objects
+            fieldMocks = {};
+            mockFormContext.getAttribute.mockImplementation((name) => {
+                if (!fieldMocks[name]) {
+                    fieldMocks[name] = makeField(null);
+                }
+                return fieldMocks[name];
+            });
+            // Initialize the module's private formContext
+            AIDEVME.Contact.Form.OnLoad(mockExecutionContext);
+        });
+
+        it('should set accountrolecode to Decision Maker (1) when job title includes "CEO"', () => {
+            fieldMocks['jobtitle'] = makeField('CEO');
+            fieldMocks['accountrolecode'] = makeField(null);
+
+            AIDEVME.Contact.Form.OnJobTitleChange();
+
+            expect(fieldMocks['accountrolecode'].setValue).toHaveBeenCalledWith(1);
+        });
+
+        it('should set accountrolecode to Decision Maker (1) when job title includes "Vice President"', () => {
+            fieldMocks['jobtitle'] = makeField('Vice President of Sales');
+            fieldMocks['accountrolecode'] = makeField(null);
+
+            AIDEVME.Contact.Form.OnJobTitleChange();
+
+            expect(fieldMocks['accountrolecode'].setValue).toHaveBeenCalledWith(1);
+        });
+
+        it('should set accountrolecode to Employee (2) when job title includes "Manager"', () => {
+            fieldMocks['jobtitle'] = makeField('Sales Manager');
+            fieldMocks['accountrolecode'] = makeField(null);
+
+            AIDEVME.Contact.Form.OnJobTitleChange();
+
+            expect(fieldMocks['accountrolecode'].setValue).toHaveBeenCalledWith(2);
+        });
+
+        it('should not override accountrolecode when a role is already assigned', () => {
+            fieldMocks['jobtitle'] = makeField('CEO');
+            fieldMocks['accountrolecode'] = makeField(2); // Already Employee — should not be overwritten
+
+            AIDEVME.Contact.Form.OnJobTitleChange();
+
+            expect(fieldMocks['accountrolecode'].setValue).not.toHaveBeenCalled();
+        });
+    });
+
+    // =========================================================================
+    // High-value tests: OnDoNotEmailChange (preferred contact method auto-swap)
+    // =========================================================================
+
+    describe('OnDoNotEmailChange', () => {
+        let fieldMocks;
+
+        const makeField = (val) => ({
+            getValue: jest.fn(() => val),
+            setValue: jest.fn(),
+            addOnChange: jest.fn(),
+            setRequiredLevel: jest.fn(),
+            getRequiredLevel: jest.fn(() => 'none'),
+        });
+
+        beforeEach(() => {
+            fieldMocks = {};
+            mockFormContext.getAttribute.mockImplementation((name) => {
+                if (!fieldMocks[name]) {
+                    fieldMocks[name] = makeField(null);
+                }
+                return fieldMocks[name];
+            });
+            AIDEVME.Contact.Form.OnLoad(mockExecutionContext);
+        });
+
+        it('should change preferred contact method from Email (2) to Phone (3) when do-not-email is checked', () => {
+            fieldMocks['donotemail'] = makeField(true);
+            fieldMocks['preferredcontactmethodcode'] = makeField(2); // Currently Email
+
+            AIDEVME.Contact.Form.OnDoNotEmailChange();
+
+            expect(fieldMocks['preferredcontactmethodcode'].setValue).toHaveBeenCalledWith(3);
+            expect(mockFormContext.ui.setFormNotification).toHaveBeenCalledWith(
+                'Preferred contact method changed from Email to Phone',
+                'INFO',
+                'contact_method_change'
+            );
+        });
+
+        it('should not change preferred method when preferred method is already Phone', () => {
+            fieldMocks['donotemail'] = makeField(true);
+            fieldMocks['preferredcontactmethodcode'] = makeField(3); // Already Phone
+
+            AIDEVME.Contact.Form.OnDoNotEmailChange();
+
+            expect(fieldMocks['preferredcontactmethodcode'].setValue).not.toHaveBeenCalled();
+        });
+
+        it('should not change preferred method when do-not-email is unchecked', () => {
+            fieldMocks['donotemail'] = makeField(false);
+            fieldMocks['preferredcontactmethodcode'] = makeField(2);
+
+            AIDEVME.Contact.Form.OnDoNotEmailChange();
+
+            expect(fieldMocks['preferredcontactmethodcode'].setValue).not.toHaveBeenCalled();
+        });
+    });
+
+    // =========================================================================
+    // High-value tests: OnSave / validateBeforeSave (critical pre-save validation)
+    // =========================================================================
+
+    describe('OnSave - validateBeforeSave', () => {
+        let mockEventArgs;
+
+        const makeField = (val) => ({
+            getValue: jest.fn(() => val),
+            setValue: jest.fn(),
+            addOnChange: jest.fn(),
+            setRequiredLevel: jest.fn(),
+            getRequiredLevel: jest.fn(() => 'none'),
+        });
+
+        // Sets up per-field attribute mocks with the given values and configures eventArgs
+        const setupFields = (overrides) => {
+            const fieldValues = Object.assign(
+                { lastname: null, emailaddress1: null, telephone1: null, mobilephone: null, birthdate: null },
+                overrides
+            );
+            const fieldCache = {};
+            mockFormContext.getAttribute.mockImplementation((name) => {
+                if (!fieldCache[name]) {
+                    fieldCache[name] = makeField(fieldValues[name] !== undefined ? fieldValues[name] : null);
+                }
+                return fieldCache[name];
+            });
+            mockEventArgs = { preventDefault: jest.fn() };
+            mockExecutionContext.getEventArgs = jest.fn(() => mockEventArgs);
+        };
+
+        it('should prevent save and show error when last name is missing', () => {
+            setupFields({ lastname: null, emailaddress1: 'john@example.com' });
+
+            AIDEVME.Contact.Form.OnSave(mockExecutionContext);
+
+            expect(mockEventArgs.preventDefault).toHaveBeenCalled();
+            expect(mockFormContext.ui.setFormNotification).toHaveBeenCalledWith(
+                'Last name is required',
+                'ERROR',
+                'save_lastname_validation'
+            );
+        });
+
+        it('should prevent save and show error when no contact method is provided', () => {
+            setupFields({ lastname: 'Doe', emailaddress1: null, telephone1: null, mobilephone: null });
+
+            AIDEVME.Contact.Form.OnSave(mockExecutionContext);
+
+            expect(mockEventArgs.preventDefault).toHaveBeenCalled();
+            expect(mockFormContext.ui.setFormNotification).toHaveBeenCalledWith(
+                'Please provide at least one contact method (email or phone)',
+                'ERROR',
+                'save_contact_validation'
+            );
+        });
+
+        it('should prevent save and show error when email format is invalid', () => {
+            setupFields({ lastname: 'Doe', emailaddress1: 'not-a-valid-email' });
+
+            AIDEVME.Contact.Form.OnSave(mockExecutionContext);
+
+            expect(mockEventArgs.preventDefault).toHaveBeenCalled();
+            expect(mockFormContext.ui.setFormNotification).toHaveBeenCalledWith(
+                'Invalid email address format',
+                'ERROR',
+                'save_email_validation'
+            );
+        });
+
+        it('should prevent save and show error when birthdate is in the future', () => {
+            const futureDate = new Date();
+            futureDate.setFullYear(futureDate.getFullYear() + 1);
+            setupFields({ lastname: 'Doe', emailaddress1: 'john@example.com', birthdate: futureDate });
+
+            AIDEVME.Contact.Form.OnSave(mockExecutionContext);
+
+            expect(mockEventArgs.preventDefault).toHaveBeenCalled();
+            expect(mockFormContext.ui.setFormNotification).toHaveBeenCalledWith(
+                'Birthdate cannot be in the future',
+                'ERROR',
+                'save_birthdate_validation'
+            );
+        });
+
+        it('should allow save and clear all validation notifications when all checks pass', () => {
+            setupFields({ lastname: 'Doe', emailaddress1: 'john@example.com' });
+
+            AIDEVME.Contact.Form.OnSave(mockExecutionContext);
+
+            expect(mockEventArgs.preventDefault).not.toHaveBeenCalled();
+            expect(mockFormContext.ui.clearFormNotification).toHaveBeenCalledWith('save_lastname_validation');
+            expect(mockFormContext.ui.clearFormNotification).toHaveBeenCalledWith('save_contact_validation');
+            expect(mockFormContext.ui.clearFormNotification).toHaveBeenCalledWith('save_email_validation');
+            expect(mockFormContext.ui.clearFormNotification).toHaveBeenCalledWith('save_birthdate_validation');
+        });
+    });
 });
