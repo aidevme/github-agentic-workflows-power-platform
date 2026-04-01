@@ -103,18 +103,31 @@ AIDEVME.Account.Ribbon = (function () {
     function verifyAccount(primaryControl) {
         try {
             var entityReference = null;
+            var formContext = null;
 
             // Determine if called from form or grid
-            if (primaryControl && primaryControl.getEntityName) {
-                // Called from form
-                entityReference = {
-                    id: primaryControl.data.entity.getId().replace(/[{}]/g, ""),
-                    name: primaryControl.getAttribute("name").getValue(),
-                    entityType: "account"
-                };
+            if (primaryControl) {
+                if (primaryControl.getFormContext) {
+                    // Called from form with primary control
+                    formContext = primaryControl.getFormContext();
+                    entityReference = {
+                        id: formContext.data.entity.getId().replace(/[{}]/g, ""),
+                        name: formContext.getAttribute && formContext.getAttribute("name") ? 
+                              formContext.getAttribute("name").getValue() : "Unknown",
+                        entityType: "account"
+                    };
+                } else if (primaryControl.getEntityName) {
+                    // Called from form context directly
+                    entityReference = {
+                        id: primaryControl.data.entity.getId().replace(/[{}]/g, ""),
+                        name: primaryControl.getAttribute("name").getValue(),
+                        entityType: "account"
+                    };
+                }
             }
 
             if (!entityReference) {
+                console.error("verifyAccount: Unable to determine account context - primaryControl is null or invalid");
                 showNotification("Unable to determine account context", "ERROR");
                 return;
             }
@@ -368,7 +381,8 @@ AIDEVME.Account.Ribbon = (function () {
     function enableRuleCanApprove() {
         try {
             // Check user privileges (simplified example)
-            var userRoles = Xrm.Utility.getGlobalContext().userSettings.securityRoles;
+            var userSettings = Xrm.Utility.getGlobalContext().userSettings;
+            var userRoles = userSettings.securityRoles || userSettings.roles;
             
             // Example: Check if user has specific role
             // In production, use privilege checks or custom logic
@@ -584,28 +598,36 @@ AIDEVME.Account.Ribbon = (function () {
     // Public API - Expose functions to be called from ribbon
     return {
         // Command Actions
-        ApproveCreditForAccounts: approveCreditForAccounts,
-        VerifyAccount: verifyAccount,
-        ExportAccountsToExcel: exportAccountsToExcel,
-        MergeAccounts: mergeAccounts,
-        DeactivateAccounts: deactivateAccounts,
+        approveCreditForAccounts: approveCreditForAccounts,
+        verifyAccount: verifyAccount,
+        exportAccountsToExcel: exportAccountsToExcel,
+        mergeAccounts: mergeAccounts,
+        deactivateAccounts: deactivateAccounts,
         
         // Enable Rules
-        EnableRuleOneSelected: enableRuleOneSelected,
-        EnableRuleAtLeastOneSelected: enableRuleAtLeastOneSelected,
-        EnableRuleTwoToThreeSelected: enableRuleTwoToThreeSelected,
-        EnableRuleCanApprove: enableRuleCanApprove,
-        EnableRuleHasCreditOnHold: enableRuleHasCreditOnHold,
+        enableRuleOneSelected: enableRuleOneSelected,
+        enableRuleAtLeastOneSelected: enableRuleAtLeastOneSelected,
+        enableRuleTwoToThreeSelected: enableRuleTwoToThreeSelected,
+        enableRuleCanApprove: enableRuleCanApprove,
+        enableRuleHasCreditOnHold: enableRuleHasCreditOnHold,
         
         // Display Rules
-        DisplayRuleActiveAccountsView: displayRuleActiveAccountsView,
-        DisplayRuleManagerOnly: displayRuleManagerOnly,
+        displayRuleActiveAccountsView: displayRuleActiveAccountsView,
+        displayRuleManagerOnly: displayRuleManagerOnly,
         
         // Helper Functions
-        GetSelectedRecords: getSelectedRecords
+        getSelectedRecords: getSelectedRecords,
+        showNotification: showNotification,
+        handleError: handleError
     };
 
 })();
+
+// Export for Node.js/Jest (if module exists)
+if (typeof module !== 'undefined' && module.exports) {
+    global.AIDEVME = AIDEVME;
+    module.exports = { AIDEVME };
+}
 
 // ========================================
 // RIBBON CONFIGURATION NOTES

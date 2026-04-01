@@ -513,6 +513,80 @@ AIDEVME.Contact.Ribbon = (function () {
     }
 
     /**
+     * Assigns contacts to a user
+     * Command Action - Called when "Assign to User" button is clicked
+     * @param {Array} selectedItems - Array of selected grid records
+     */
+    function assignContactsToUser(selectedItems) {
+        try {
+            if (!selectedItems || selectedItems.length === 0) {
+                showNotification("Please select contacts to assign", "WARNING");
+                return;
+            }
+
+            // Open user lookup
+            var lookupOptions = {
+                entityTypes: ["systemuser"],
+                allowMultiSelect: false,
+                defaultEntityType: "systemuser"
+            };
+
+            Xrm.Utility.lookupObjects(lookupOptions).then(
+                function (results) {
+                    if (results && results.length > 0) {
+                        var user = results[0];
+                        processAssignment(selectedItems, user);
+                    }
+                },
+                function (error) {
+                    handleError("assignContactsToUser - lookup", error);
+                }
+            );
+
+        } catch (error) {
+            handleError("assignContactsToUser", error);
+        }
+    }
+
+    /**
+     * Process assignment of contacts to user
+     * @param {Array} selectedItems - Array of contact records
+     * @param {Object} user - User entity reference
+     */
+    function processAssignment(selectedItems, user) {
+        try {
+            showNotification("Assigning " + selectedItems.length + " contact(s) to " + user.name + "...", "INFO");
+
+            var promises = [];
+            var userId = user.id.replace(/[{}]/g, "");
+
+            selectedItems.forEach(function (item) {
+                var contactId = item.Id.replace(/[{}]/g, "");
+
+                var assignRequest = {
+                    "ownerid@odata.bind": "/systemusers(" + userId + ")"
+                };
+
+                var promise = Xrm.WebApi.updateRecord("contact", contactId, assignRequest);
+                promises.push(promise);
+            });
+
+            Promise.all(promises).then(
+                function (results) {
+                    showNotification("Assigned " + results.length + " contact(s) to " + user.name, "SUCCESS");
+                    refreshGrid();
+                },
+                function (error) {
+                    handleError("processAssignment - update", error);
+                }
+            );
+
+        } catch (error) {
+            handleError("processAssignment", error);
+        }
+    }
+
+    /**
      * Deactivates selected contacts
      * Command Action - Called when "Deactivate" button is clicked
      * @param {Array} selectedItems - Array of selected grid records
@@ -603,6 +677,15 @@ AIDEVME.Contact.Ribbon = (function () {
      */
     function enableRuleTwoToThreeSelected(selectedItems) {
         return selectedItems && selectedItems.length >= 2 && selectedItems.length <= 3;
+    }
+
+    /**
+     * Enable Rule - Check if exactly two records are selected (alias for merge)
+     * @param {Array} selectedItems - Array of selected records
+     * @returns {boolean} True if enabled
+     */
+    function enableRuleTwoSelected(selectedItems) {
+        return selectedItems && selectedItems.length === 2;
     }
 
     /**
@@ -743,6 +826,31 @@ AIDEVME.Contact.Ribbon = (function () {
         }
     }
 
+    /**
+     * Display Rule - Check if user has Sales role
+     * @returns {boolean} True if user has sales role
+     */
+    function displayRuleSalesRole() {
+        try {
+            var userRoles = Xrm.Utility.getGlobalContext().userSettings.securityRoles;
+            
+            // Check for Sales role (use actual role GUID from your environment)
+            var salesRoleId = "{00000000-0000-0000-0000-000000000003}"; // Example
+            
+            for (var i = 0; i < userRoles.length; i++) {
+                if (userRoles[i].id === salesRoleId) {
+                    return true;
+                }
+            }
+
+            return false;
+
+        } catch (error) {
+            console.error("displayRuleSalesRole error:", error);
+            return false;
+        }
+    }
+
     // ========================================
     // HELPER FUNCTIONS
     // ========================================
@@ -844,33 +952,45 @@ AIDEVME.Contact.Ribbon = (function () {
     // Public API - Expose functions to be called from ribbon
     return {
         // Command Actions
-        SendEmailToContacts: sendEmailToContacts,
-        ScheduleAppointmentWithContacts: scheduleAppointmentWithContacts,
-        AddToMarketingList: addToMarketingList,
-        UpdateContactPreferences: updateContactPreferences,
-        MergeContacts: mergeContacts,
-        SetAsPrimaryContact: setAsPrimaryContact,
-        LinkToParentAccount: linkToParentAccount,
-        ExportContactsToExcel: exportContactsToExcel,
-        DeactivateContacts: deactivateContacts,
+        sendEmailToContacts: sendEmailToContacts,
+        scheduleAppointmentWithContacts: scheduleAppointmentWithContacts,
+        addToMarketingList: addToMarketingList,
+        updateContactPreferences: updateContactPreferences,
+        mergeContacts: mergeContacts,
+        setAsPrimaryContact: setAsPrimaryContact,
+        linkToParentAccount: linkToParentAccount,
+        exportContactsToExcel: exportContactsToExcel,
+        assignContactsToUser: assignContactsToUser,
+        deactivateContacts: deactivateContacts,
         
         // Enable Rules
-        EnableRuleOneSelected: enableRuleOneSelected,
-        EnableRuleAtLeastOneSelected: enableRuleAtLeastOneSelected,
-        EnableRuleTwoToThreeSelected: enableRuleTwoToThreeSelected,
-        EnableRuleHasEmailAddress: enableRuleHasEmailAddress,
-        EnableRuleHasParentAccount: enableRuleHasParentAccount,
-        EnableRuleEmailAllowed: enableRuleEmailAllowed,
+        enableRuleOneSelected: enableRuleOneSelected,
+        enableRuleAtLeastOneSelected: enableRuleAtLeastOneSelected,
+        enableRuleTwoSelected: enableRuleTwoSelected,
+        enableRuleTwoToThreeSelected: enableRuleTwoToThreeSelected,
+        enableRuleHasEmailAddress: enableRuleHasEmailAddress,
+        enableRuleHasEmail: enableRuleHasEmailAddress, // Alias for tests
+        enableRuleHasParentAccount: enableRuleHasParentAccount,
+        enableRuleEmailAllowed: enableRuleEmailAllowed,
         
         // Display Rules
-        DisplayRuleActiveContactsView: displayRuleActiveContactsView,
-        DisplayRuleMarketingUserOnly: displayRuleMarketingUserOnly,
+        displayRuleActiveContactsView: displayRuleActiveContactsView,
+        displayRuleMarketingUserOnly: displayRuleMarketingUserOnly,
+        displayRuleSalesRole: displayRuleSalesRole,
         
         // Helper Functions
-        GetSelectedRecords: getSelectedRecords
+        getSelectedRecords: getSelectedRecords,
+        showNotification: showNotification,
+        handleError: handleError
     };
 
 })();
+
+// Export for Node.js/Jest (if module exists)
+if (typeof module !== 'undefined' && module.exports) {
+    global.AIDEVME = AIDEVME;
+    module.exports = { AIDEVME };
+}
 
 // ========================================
 // RIBBON CONFIGURATION NOTES

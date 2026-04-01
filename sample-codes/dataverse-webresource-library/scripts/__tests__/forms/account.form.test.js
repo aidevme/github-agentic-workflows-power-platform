@@ -5,22 +5,35 @@
 
 // Mock formContext helper
 function createMockFormContext() {
+    const attributeMocks = {};
+    const controlMocks = {};
+    
     return {
-        getAttribute: jest.fn((name) => ({
-            getValue: jest.fn(),
-            setValue: jest.fn(),
-            addOnChange: jest.fn(),
-            removeOnChange: jest.fn(),
-            setRequiredLevel: jest.fn(),
-            getRequiredLevel: jest.fn(() => 'none'),
-        })),
-        getControl: jest.fn((name) => ({
-            setVisible: jest.fn(),
-            setDisabled: jest.fn(),
-            getDisabled: jest.fn(() => false),
-            setNotification: jest.fn(),
-            clearNotification: jest.fn(),
-        })),
+        getAttribute: jest.fn((name) => {
+            if (!attributeMocks[name]) {
+                attributeMocks[name] = {
+                    getValue: jest.fn(),
+                    setValue: jest.fn(),
+                    addOnChange: jest.fn(),
+                    removeOnChange: jest.fn(),
+                    setRequiredLevel: jest.fn(),
+                    getRequiredLevel: jest.fn(() => 'none'),
+                };
+            }
+            return attributeMocks[name];
+        }),
+        getControl: jest.fn((name) => {
+            if (!controlMocks[name]) {
+                controlMocks[name] = {
+                    setVisible: jest.fn(),
+                    setDisabled: jest.fn(),
+                    getDisabled: jest.fn(() => false),
+                    setNotification: jest.fn(),
+                    clearNotification: jest.fn(),
+                };
+            }
+            return controlMocks[name];
+        }),
         ui: {
             getFormType: jest.fn(() => 1), // Default to Create
             setFormNotification: jest.fn(),
@@ -98,6 +111,9 @@ describe('AIDEVME.Account.Form', () => {
 
         // Load the form script
         require('../../forms/account.form.js');
+        
+        // Initialize formContext by calling onLoad
+        AIDEVME.Account.Form.onLoad(mockExecutionContext);
     });
 
     describe('onLoad', () => {

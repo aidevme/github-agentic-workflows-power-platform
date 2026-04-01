@@ -645,15 +645,23 @@ AIDEVME.Account.Form = (function () {
 
     // Public API - expose only necessary functions
     return {
-        OnLoad: onLoad,
-        OnSave: onSave,
+        onLoad: onLoad,
+        onSave: onSave,
         // Expose for testing/debugging if needed
-        OnAccountNameChange: onAccountNameChange,
-        OnPrimaryContactChange: onPrimaryContactChange,
-        OnRevenueChange: onRevenueChange
+        onAccountNameChange: onAccountNameChange,
+        onPrimaryContactChange: onPrimaryContactChange,
+        onRevenueChange: onRevenueChange,
+        onPhoneNumberChange: onPhoneNumberChange,
+        onEmailAddressChange: onEmailAddressChange
     };
 
 })();
+
+// Export for Node.js/Jest (if module exists)
+if (typeof module !== 'undefined' && module.exports) {
+    global.AIDEVME = AIDEVME;
+    module.exports = { AIDEVME };
+}
 
 // Event handler registration for form events
 // These should be registered in the form properties in Dynamics 365

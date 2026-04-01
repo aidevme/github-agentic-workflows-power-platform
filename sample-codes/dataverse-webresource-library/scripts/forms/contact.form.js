@@ -487,6 +487,59 @@ AIDEVME.Contact.Form = (function () {
     /**
      * Name onChange event handler (for first/last name)
      */
+    /**
+     * First Name onChange event handler
+     */
+    function onFirstNameChange() {
+        try {
+            var firstNameField = formContext.getAttribute("firstname");
+            var firstName = firstNameField ? firstNameField.getValue() : "";
+
+            // Validate that name doesn't contain numbers or special characters
+            var namePattern = /^[a-zA-Z\s\-'\.]+$/;
+
+            if (firstName && !namePattern.test(firstName)) {
+                formContext.getControl("firstname").setNotification(
+                    "First name contains invalid characters",
+                    "firstname_validation"
+                );
+            } else {
+                formContext.getControl("firstname").clearNotification("firstname_validation");
+            }
+
+        } catch (error) {
+            handleError("onFirstNameChange", error);
+        }
+    }
+
+    /**
+     * Last Name onChange event handler
+     */
+    function onLastNameChange() {
+        try {
+            var lastNameField = formContext.getAttribute("lastname");
+            var lastName = lastNameField ? lastNameField.getValue() : "";
+
+            // Validate that name doesn't contain numbers or special characters
+            var namePattern = /^[a-zA-Z\s\-'\.]+$/;
+
+            if (lastName && !namePattern.test(lastName)) {
+                formContext.getControl("lastname").setNotification(
+                    "Last name contains invalid characters",
+                    "lastname_validation"
+                );
+            } else {
+                formContext.getControl("lastname").clearNotification("lastname_validation");
+            }
+
+        } catch (error) {
+            handleError("onLastNameChange", error);
+        }
+    }
+
+    /**
+     * Combined name change handler (calls both first and last name validation)
+     */
     function onNameChange() {
         try {
             var firstNameField = formContext.getAttribute("firstname");
@@ -906,23 +959,30 @@ AIDEVME.Contact.Form = (function () {
 
     // Public API - expose only necessary functions
     return {
-        OnLoad: onLoad,
-        OnSave: onSave,
+        onLoad: onLoad,
+        onSave: onSave,
         // Expose for testing/debugging if needed
-        OnEmailAddressChange: onEmailAddressChange,
-        OnMobilePhoneChange: onMobilePhoneChange,
-        OnBusinessPhoneChange: onBusinessPhoneChange,
-        OnParentCustomerChange: onParentCustomerChange,
-        OnJobTitleChange: onJobTitleChange,
-        OnBirthdateChange: onBirthdateChange,
-        OnDoNotEmailChange: onDoNotEmailChange,
-        OnNameChange: onNameChange,
+        onEmailAddressChange: onEmailAddressChange,
+        onMobilePhoneChange: onMobilePhoneChange,
+        onBusinessPhoneChange: onBusinessPhoneChange,
+        onParentCustomerChange: onParentCustomerChange,
+        onJobTitleChange: onJobTitleChange,
+        onBirthDateChange: onBirthdateChange,
+        onDoNotEmailChange: onDoNotEmailChange,
+        onFirstNameChange: onFirstNameChange,
+        onLastNameChange: onLastNameChange,
         // Validation helpers
-        ValidatePhoneNumber: validatePhoneNumber,
-        FormatPhoneNumber: formatPhoneNumber
+        validatePhoneNumber: validatePhoneNumber,
+        formatPhoneNumber: formatPhoneNumber
     };
 
 })();
+
+// Export for Node.js/Jest (if module exists)
+if (typeof module !== 'undefined' && module.exports) {
+    global.AIDEVME = AIDEVME;
+    module.exports = { AIDEVME };
+}
 
 // Event handler registration for form events
 // These should be registered in the form properties in Dynamics 365
